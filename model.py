@@ -25,7 +25,7 @@ class Net(nn.Module):
         super(Net, self).__init__()
         self.resnet = models.resnet18(pretrained = True)
 
-        numFeatures = self.reset.fc.in_features
+        numFeatures = self.resnet.fc.in_features
 
         self.layer2 = nn.Linear(numFeatures, len(num_classes))
 
