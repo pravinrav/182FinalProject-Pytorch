@@ -29,13 +29,17 @@ from torch import nn
 import pathlib
 from model import Net
 
+from IPython import embed
 
+from tqdm import tqdm
 
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+print(device)
+print(torch.cuda.is_available())
+torch.cuda.set_device(0)
 
-
-def train_model(model, criterion, optimizer, scheduler, num_epochs, train_loader, validation_loader):
+def train_model(model, criterion, optimizer, scheduler, num_epochs, train_loader, validation_loader, dataset_sizes):
 
     # Begin Time
     since = time.time()
@@ -62,7 +66,7 @@ def train_model(model, criterion, optimizer, scheduler, num_epochs, train_loader
             elif phase == 'val':
                 loader = validation_loader
 
-            for idx, (inputs, targets) in enumerate(loader):
+            for idx, (inputs, targets) in enumerate(tqdm(loader)):
 
                 inputs = inputs.to(device)
                 targets = targets.to(device)
@@ -86,7 +90,7 @@ def train_model(model, criterion, optimizer, scheduler, num_epochs, train_loader
 
                 # statistics
                 running_loss += loss.item() * inputs.size(0)
-                running_corrects += torch.sum(preds == labels.data)
+                running_corrects += torch.sum(preds == targets.data)
 
             if phase == 'train':
                 scheduler.step()
@@ -119,53 +123,58 @@ def train_model(model, criterion, optimizer, scheduler, num_epochs, train_loader
     return model
 
 
-def main():
+def main(learningRate):
 
     # Create a pytorch dataset
     data_dir = pathlib.Path('./data/tiny-imagenet-200')
-    image_count = len(list(data_dir.glob('**/*.JPEG')))
+    # image_count = len(list(data_dir.glob('**/*.JPEG')))
     CLASS_NAMES = np.array([item.name for item in (data_dir / 'train').glob('*')])
-    print('Discovered {} images'.format(image_count))
+    # print('Discovered {} images'.format(image_count))
 
     assert(len(CLASS_NAMES) == 200)
 
     # Create the training data generator
-    batch_size = 32
+    batch_size = 1024
     im_height = 64
     im_width = 64
-    num_epochs = 1
 
     data_transforms = transforms.Compose([
         transforms.ToTensor(),
         transforms.Normalize((0, 0, 0), tuple(np.sqrt((255, 255, 255)))),
     ])
-    train_set = torchvision.datasets.ImageFolder(data_dir / 'train', data_transforms)
+
+    dataPathString = './data/tiny-imagenet-200'
+
+
+    train_set = torchvision.datasets.ImageFolder(dataPathString + '/train', data_transforms)
     train_loader = torch.utils.data.DataLoader(train_set, batch_size=batch_size,
-                                               shuffle=True, num_workers = 4, pin_memory = True)
+                                               shuffle=True, num_workers = 1, pin_memory = True)
 
 
     # Create the validation data generator
-    validation_set = torchvision.datasets.ImageFolder(data_dir / 'val/data', data_transforms)
+    validation_set = torchvision.datasets.ImageFolder(dataPathString + '/val/data', data_transforms)
     validation_loader = torch.utils.data.DataLoader(validation_set, batch_size = batch_size,
-                                               shuffle = True, num_workers = 4, pin_memory = True)
+                                               shuffle = True, num_workers = 1, pin_memory = True)
 
-
+    # Dataset Sizes
+    dataset_sizes = {'train' : len(train_set), 'val' : len(validation_set)}
+    print(dataset_sizes)
 
     # Create a simple model, with optimizer and loss criterion and learning rate scheduler
     model = Net(len(CLASS_NAMES), im_height, im_width)
-    optimizer = torch.optim.Adam(model.parameters())
+    optimizer = torch.optim.Adam(model.parameters(), lr = learningRate)
     criterion = nn.CrossEntropyLoss()
 
-    exp_lr_scheduler = lr_scheduler.StepLR(optimizer, step_size=7, gamma=0.1)
+    exp_lr_scheduler = lr_scheduler.StepLR(optimizer, step_size = 3, gamma = 0.1)
 
     # Make sure the model is on the GPU
     model = model.to(device)
 
     # Number of Epochs
-    num_epochs = 2
+    num_epochs = 3
 
     # Train the Model
-    fittedModel = train_model(model, criterion, optimizer, exp_lr_scheduler, num_epochs, train_loader, validation_loader)
+    fittedModel = train_model(model, criterion, optimizer, exp_lr_scheduler, num_epochs, train_loader, validation_loader, dataset_sizes)
 
 
     '''
