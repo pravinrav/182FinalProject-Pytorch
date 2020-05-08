@@ -24,7 +24,7 @@ class Net(nn.Module):
     def __init__(self, num_classes, im_height, im_width):
 
         super(Net, self).__init__()
-        self.resnet = models.resnext50_32x4d(pretrained = True)
+        self.resnet = models.resnet152(pretrained = True)
         numFeatures = self.resnet.fc.out_features
         
         self.layer2 = nn.Linear(numFeatures, 1024)
