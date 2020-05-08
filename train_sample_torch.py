@@ -183,10 +183,10 @@ def main(learningRate):
     model = model.to(device)
 
     # Number of Epochs
-    num_epochs = 25
+    num_epochs = 8
 
     # Filename
-    filename = 'resnet-learningRate-' + str(learningRate) + '-noAugment.pt'
+    filename = 'resnet50-learningRate-' + str(learningRate) + '-noAugment.pt'
 
     # Train the Model
     fittedModel = train_model(model, criterion, optimizer, exp_lr_scheduler, num_epochs, train_loader, validation_loader, dataset_sizes, filename)
@@ -214,9 +214,9 @@ def main(learningRate):
 
 
 if __name__ == '__main__':
-    main(0.00005)
+    # main(0.00005)
     main(0.0001)
-    main(0.0003)
+    # main(0.0003)
     # main(0.001)
     # main(0.01)
     # main(0.1)
