@@ -186,7 +186,7 @@ def main(learningRate):
     num_epochs = 8
 
     # Filename
-    filename = 'resnet50-learningRate-' + str(learningRate) + '-noAugment.pt'
+    filename = 'resnet152-learningRate-' + str(learningRate) + '-noAugment.pt'
 
     # Train the Model
     fittedModel = train_model(model, criterion, optimizer, exp_lr_scheduler, num_epochs, train_loader, validation_loader, dataset_sizes, filename)
