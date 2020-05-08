@@ -27,7 +27,7 @@ class Net(nn.Module):
 
         numFeatures = self.resnet.fc.in_features
 
-        self.layer2 = nn.Linear(numFeatures, len(num_classes))
+        self.layer2 = nn.Linear(numFeatures, num_classes)
 
     def forward(self, x):
         x = x.flatten(1)
