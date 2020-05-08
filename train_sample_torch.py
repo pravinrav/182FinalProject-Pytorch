@@ -29,7 +29,6 @@ from torch import nn
 import pathlib
 from model import Net
 
-from IPython import embed
 
 
 
@@ -41,7 +40,7 @@ def train_model(model, criterion, optimizer, scheduler, num_epochs = 25):
     # Create a pytorch dataset
     data_dir = pathlib.Path('./data/tiny-imagenet-200')
     image_count = len(list(data_dir.glob('**/*.JPEG')))
-    CLASS_NAMES = np.array([item.name for item in (data_dir + '/train').glob('*')])
+    CLASS_NAMES = np.array([item.name for item in (data_dir / 'train').glob('*')])
     print('Discovered {} images'.format(image_count))
 
     # Create the training data generator
@@ -54,13 +53,13 @@ def train_model(model, criterion, optimizer, scheduler, num_epochs = 25):
         transforms.ToTensor(),
         transforms.Normalize((0, 0, 0), tuple(np.sqrt((255, 255, 255)))),
     ])
-    train_set = torchvision.datasets.ImageFolder(data_dir + '/train', data_transforms)
+    train_set = torchvision.datasets.ImageFolder(data_dir / 'train', data_transforms)
     train_loader = torch.utils.data.DataLoader(train_set, batch_size=batch_size,
                                                shuffle=True, num_workers = 4, pin_memory = True)
 
 
     # Create the validation data generator
-    validation_set = torchvision.datasets.ImageFolder(data_dir + '/val/data', data_transforms)
+    validation_set = torchvision.datasets.ImageFolder(data_dir / 'val/data', data_transforms)
     validation_loader = torch.utils.data.DataLoader(validation_set, batch_size = batch_size,
                                                shuffle = True, num_workers = 4, pin_memory = True)
 
@@ -151,7 +150,7 @@ def main():
 
     data_dir = pathlib.Path('./data/tiny-imagenet-200')
     image_count = len(list(data_dir.glob('**/*.JPEG')))
-    CLASS_NAMES = np.array([item.name for item in (data_dir + '/train').glob('*')])
+    CLASS_NAMES = np.array([item.name for item in (data_dir / 'train').glob('*')])
     print('Discovered {} images'.format(image_count))
 
     assert(len(CLASS_NAMES) == 200)
