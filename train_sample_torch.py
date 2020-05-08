@@ -135,7 +135,14 @@ def main():
     CLASS_NAMES = np.array([item.name for item in (data_dir / 'train').glob('*')])
     print('Discovered {} images'.format(image_count))
 
-    assert(CLASS_NAMES = 200)
+    assert(len(CLASS_NAMES) == 200)
+
+    # Dimensions
+    batch_size = 32
+    im_height = 64
+    im_width = 64
+    num_epochs = 1
+
 
     # Create a simple model, with optimizer and loss criterion and learning rate scheduler
     model = Net(len(CLASS_NAMES), im_height, im_width)
