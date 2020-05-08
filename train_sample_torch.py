@@ -5,14 +5,32 @@ portions of the code. We provide this model in order to test the full pipeline,
 and to validate your own code submission.
 """
 
-import pathlib
-import numpy as np
+from __future__ import print_function, division
+
 import torch
+import torch.nn as nn
+import torch.optim as optim
+from torch.optim import lr_scheduler
+import numpy as np
 import torchvision
+from torchvision import datasets, models, transforms
+import matplotlib.pyplot as plt
+import time
+import os
+import copy
+
+plt.ion()   # interactive mode
+
 import torchvision.transforms as transforms
+import torch.nn.functional as F
+from torch import nn
+
+
+import pathlib
 from model import Net
 
-from torch import nn
+
+
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
