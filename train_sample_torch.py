@@ -35,34 +35,7 @@ from model import Net
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 
-def train_model(model, criterion, optimizer, scheduler, num_epochs = 25):
-
-    # Create a pytorch dataset
-    data_dir = pathlib.Path('./data/tiny-imagenet-200')
-    image_count = len(list(data_dir.glob('**/*.JPEG')))
-    CLASS_NAMES = np.array([item.name for item in (data_dir / 'train').glob('*')])
-    print('Discovered {} images'.format(image_count))
-
-    # Create the training data generator
-    batch_size = 32
-    im_height = 64
-    im_width = 64
-    num_epochs = 1
-
-    data_transforms = transforms.Compose([
-        transforms.ToTensor(),
-        transforms.Normalize((0, 0, 0), tuple(np.sqrt((255, 255, 255)))),
-    ])
-    train_set = torchvision.datasets.ImageFolder(data_dir / 'train', data_transforms)
-    train_loader = torch.utils.data.DataLoader(train_set, batch_size=batch_size,
-                                               shuffle=True, num_workers = 4, pin_memory = True)
-
-
-    # Create the validation data generator
-    validation_set = torchvision.datasets.ImageFolder(data_dir / 'val/data', data_transforms)
-    validation_loader = torch.utils.data.DataLoader(validation_set, batch_size = batch_size,
-                                               shuffle = True, num_workers = 4, pin_memory = True)
-
+def train_model(model, criterion, optimizer, scheduler, num_epochs = 25, train_loader, validation_loader):
 
     # Begin Time
     since = time.time()
@@ -148,6 +121,7 @@ def train_model(model, criterion, optimizer, scheduler, num_epochs = 25):
 
 def main():
 
+    # Create a pytorch dataset
     data_dir = pathlib.Path('./data/tiny-imagenet-200')
     image_count = len(list(data_dir.glob('**/*.JPEG')))
     CLASS_NAMES = np.array([item.name for item in (data_dir / 'train').glob('*')])
@@ -155,11 +129,26 @@ def main():
 
     assert(len(CLASS_NAMES) == 200)
 
-    # Dimensions
+    # Create the training data generator
     batch_size = 32
     im_height = 64
     im_width = 64
     num_epochs = 1
+
+    data_transforms = transforms.Compose([
+        transforms.ToTensor(),
+        transforms.Normalize((0, 0, 0), tuple(np.sqrt((255, 255, 255)))),
+    ])
+    train_set = torchvision.datasets.ImageFolder(data_dir / 'train', data_transforms)
+    train_loader = torch.utils.data.DataLoader(train_set, batch_size=batch_size,
+                                               shuffle=True, num_workers = 4, pin_memory = True)
+
+
+    # Create the validation data generator
+    validation_set = torchvision.datasets.ImageFolder(data_dir / 'val/data', data_transforms)
+    validation_loader = torch.utils.data.DataLoader(validation_set, batch_size = batch_size,
+                                               shuffle = True, num_workers = 4, pin_memory = True)
+
 
 
     # Create a simple model, with optimizer and loss criterion and learning rate scheduler
@@ -173,7 +162,7 @@ def main():
     model = model.to(device)
 
     # Train the Model
-    fittedModel = train_model(model, criterion, optimizer, exp_lr_scheduler, num_epochs = 25)
+    fittedModel = train_model(model, criterion, optimizer, exp_lr_scheduler, num_epochs = 25, train_loader, validation_loader)
 
 
     '''
