@@ -39,9 +39,9 @@ class Net(nn.Module):
 
         # Linear Relu Linear Relu Linear Softmax
         x = self.layer2(x)
-        x = F.relu(x)
+        # x = F.relu(x)
         x = self.layer3(x)
-        x = F.relu(x)
+        # x = F.relu(x)
         x = self.layer4(x)
         x = F.softmax(x)
         

@@ -39,13 +39,16 @@ print(device)
 print(torch.cuda.is_available())
 torch.cuda.set_device(0)
 
-def train_model(model, criterion, optimizer, scheduler, num_epochs, train_loader, validation_loader, dataset_sizes):
+def train_model(model, criterion, optimizer, scheduler, num_epochs, train_loader, validation_loader, dataset_sizes, filename):
 
     # Begin Time
     since = time.time()
 
     best_model_wts = copy.deepcopy(model.state_dict())
     best_acc = 0.0
+
+    training_acc = []
+    validation_acc = []
 
     for epoch in range(num_epochs):
         print('Epoch {}/{}'.format(epoch, num_epochs - 1))
@@ -101,6 +104,11 @@ def train_model(model, criterion, optimizer, scheduler, num_epochs, train_loader
             print('{} Loss: {:.4f} Acc: {:.4f}'.format(
                 phase, epoch_loss, epoch_acc))
 
+            if phase=="train":
+                training_acc.append(epoch_acc)
+            elif phase=="val":
+                validation_acc.append(epoch_acc)
+
             # deep copy the model
             if phase == 'val' and epoch_acc > best_acc:
                 best_acc = epoch_acc
@@ -118,7 +126,11 @@ def train_model(model, criterion, optimizer, scheduler, num_epochs, train_loader
     model.load_state_dict(best_model_wts)
 
     # Save best model weights
-    torch.save({'net': model.state_dict(), }, 'latest.pt')
+    torch.save({'net': model.state_dict(), }, filename)
+
+    plt.plot(training_acc)
+    plt.plot(validation_acc)
+    plt.savefig(filename[:-3]+".png")
 
     return model
 
@@ -171,10 +183,13 @@ def main(learningRate):
     model = model.to(device)
 
     # Number of Epochs
-    num_epochs = 3
+    num_epochs = 25
+
+    # Filename
+    filename = 'resnet-learningRate-' + str(learningRate) + '-noAugment.pt'
 
     # Train the Model
-    fittedModel = train_model(model, criterion, optimizer, exp_lr_scheduler, num_epochs, train_loader, validation_loader, dataset_sizes)
+    fittedModel = train_model(model, criterion, optimizer, exp_lr_scheduler, num_epochs, train_loader, validation_loader, dataset_sizes, filename)
 
 
     '''
@@ -199,4 +214,10 @@ def main(learningRate):
 
 
 if __name__ == '__main__':
-    main()
+    main(0.00005)
+    main(0.0001)
+    main(0.0003)
+    # main(0.001)
+    # main(0.01)
+    # main(0.1)
+
