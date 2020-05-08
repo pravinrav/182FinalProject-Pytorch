@@ -68,7 +68,7 @@ def train_model(model, criterion, optimizer, scheduler, num_epochs = 25):
 
             if phase == 'train':
                 loader = train_loader
-            else if phase == 'val':
+            elif phase == 'val':
                 loader = validation_loader
 
             for idx, (inputs, targets) in enumerate(loader):
@@ -129,6 +129,14 @@ def train_model(model, criterion, optimizer, scheduler, num_epochs = 25):
 
 
 def main():
+
+    data_dir = pathlib.Path('./data/tiny-imagenet-200')
+    image_count = len(list(data_dir.glob('**/*.JPEG')))
+    CLASS_NAMES = np.array([item.name for item in (data_dir / 'train').glob('*')])
+    print('Discovered {} images'.format(image_count))
+
+    assert(CLASS_NAMES = 200)
+
     # Create a simple model, with optimizer and loss criterion and learning rate scheduler
     model = Net(len(CLASS_NAMES), im_height, im_width)
     optimizer = torch.optim.Adam(model.parameters())
