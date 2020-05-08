@@ -35,7 +35,7 @@ from model import Net
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 
-def train_model(model, criterion, optimizer, scheduler, num_epochs = 25, train_loader, validation_loader):
+def train_model(model, criterion, optimizer, scheduler, num_epochs, train_loader, validation_loader):
 
     # Begin Time
     since = time.time()
@@ -161,8 +161,11 @@ def main():
     # Make sure the model is on the GPU
     model = model.to(device)
 
+    # Number of Epochs
+    num_epochs = 2
+
     # Train the Model
-    fittedModel = train_model(model, criterion, optimizer, exp_lr_scheduler, num_epochs = 25, train_loader, validation_loader)
+    fittedModel = train_model(model, criterion, optimizer, exp_lr_scheduler, num_epochs, train_loader, validation_loader)
 
 
     '''
