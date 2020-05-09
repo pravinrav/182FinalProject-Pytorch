@@ -151,6 +151,15 @@ def main(learningRate):
     im_width = 64
 
     data_transforms = transforms.Compose([
+        transforms.ColorJitter(brightness = 1, contrast = 1, saturation = 1, hue = 1),
+        transforms.RandomAffine(degrees = 20, translate = 0.05, scale = None, shear = 10),
+        transforms.RandomGrayscale(p = 0.1),
+        transforms.RandomHorizontalFlip(p = 0.1),
+        transforms.RandomVerticalFlip(p = 0.1),
+        transforms.RandomRotation(degrees = 10),
+        transforms.RandomPerspective(p = 0.2),
+
+
         transforms.ToTensor(),
         transforms.Normalize((0, 0, 0), tuple(np.sqrt((255, 255, 255)))),
     ])
