@@ -135,7 +135,7 @@ def train_model(model, criterion, optimizer, scheduler, num_epochs, train_loader
     return model
 
 
-def main(learningRate):
+def main(learningRate, data_aug = False):
 
     # Create a pytorch dataset
     data_dir = pathlib.Path('./data/tiny-imagenet-200')
@@ -150,19 +150,34 @@ def main(learningRate):
     im_height = 64
     im_width = 64
 
-    data_transforms = transforms.Compose([
-        transforms.ColorJitter(brightness = 1, contrast = 1, saturation = 1, hue = 1),
-        transforms.RandomAffine(degrees = 20, translate = 0.05, scale = None, shear = 10),
-        transforms.RandomGrayscale(p = 0.1),
-        transforms.RandomHorizontalFlip(p = 0.1),
-        transforms.RandomVerticalFlip(p = 0.1),
-        transforms.RandomRotation(degrees = 10),
-        transforms.RandomPerspective(p = 0.2),
+    # Should data augmentation be performed on the training data?
+    if data_aug == True:
+        data_transforms = transforms.Compose([
+            transforms.ColorJitter(brightness = 1, contrast = 1, saturation = 1, hue = 1),
+            transforms.RandomAffine(degrees = 20, translate = 0.05, scale = None, shear = 10),
+            transforms.RandomGrayscale(p = 0.1),
+            transforms.RandomHorizontalFlip(p = 0.1),
+            transforms.RandomVerticalFlip(p = 0.1),
+            transforms.RandomRotation(degrees = 10),
+            transforms.RandomPerspective(p = 0.2),
 
 
-        transforms.ToTensor(),
-        transforms.Normalize((0, 0, 0), tuple(np.sqrt((255, 255, 255)))),
+            transforms.ToTensor(),
+            transforms.Normalize((0, 0, 0), tuple(np.sqrt((255, 255, 255)))),
+        ])
+    elif data_aug == False:
+        data_transforms = transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Normalize((0, 0, 0), tuple(np.sqrt((255, 255, 255)))),
+        ])
+
+
+    # No augmentations performed on validation data (report statistics on unaugmented validation data)
+    validation_data_transforms = transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Normalize((0, 0, 0), tuple(np.sqrt((255, 255, 255)))),
     ])
+
 
     dataPathString = './data/tiny-imagenet-200'
 
@@ -173,7 +188,7 @@ def main(learningRate):
 
 
     # Create the validation data generator
-    validation_set = torchvision.datasets.ImageFolder(dataPathString + '/val/data', data_transforms)
+    validation_set = torchvision.datasets.ImageFolder(dataPathString + '/val/data', validation_data_transforms)
     validation_loader = torch.utils.data.DataLoader(validation_set, batch_size = batch_size,
                                                shuffle = True, num_workers = 1, pin_memory = True)
 
@@ -223,7 +238,7 @@ def main(learningRate):
 
 
 if __name__ == '__main__':
-    main(0.000075)
+    main(learningRate = 0.000075, data_aug = False)
     # main(0.0001)
     # main(0.0003)
     # main(0.001)
