@@ -70,7 +70,6 @@ def train_model(model, criterion, optimizer, scheduler, num_epochs, train_loader
                 loader = validation_loader
 
             for idx, (inputs, targets) in enumerate(tqdm(loader)):
-
                 inputs = inputs.to(device)
                 targets = targets.to(device)
 
@@ -135,7 +134,7 @@ def train_model(model, criterion, optimizer, scheduler, num_epochs, train_loader
     return model
 
 
-def main(learningRate, data_aug = False):
+def main(learningRate, data_aug=False):
 
     # Create a pytorch dataset
     data_dir = pathlib.Path('./data/tiny-imagenet-200')
@@ -150,45 +149,44 @@ def main(learningRate, data_aug = False):
     im_height = 64
     im_width = 64
 
-    # Should data augmentation be performed on the training data?
-    if data_aug == True:
-        data_transforms = transforms.Compose([
-            transforms.ColorJitter(brightness = 1, contrast = 1, saturation = 1, hue = 1),
-            transforms.RandomAffine(degrees = 20, translate = 0.05, scale = None, shear = 10),
-            transforms.RandomGrayscale(p = 0.1),
-            transforms.RandomHorizontalFlip(p = 0.1),
-            transforms.RandomVerticalFlip(p = 0.1),
-            transforms.RandomRotation(degrees = 10),
-            transforms.RandomPerspective(p = 0.2),
+    normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                                     std=[0.229, 0.224, 0.225])
 
-
-            transforms.ToTensor(),
-            transforms.Normalize((0, 0, 0), tuple(np.sqrt((255, 255, 255)))),
-        ])
-    elif data_aug == False:
-        data_transforms = transforms.Compose([
-            transforms.ToTensor(),
-            transforms.Normalize((0, 0, 0), tuple(np.sqrt((255, 255, 255)))),
-        ])
-
-
-    # No augmentations performed on validation data (report statistics on unaugmented validation data)
-    validation_data_transforms = transforms.Compose([
-            transforms.ToTensor(),
-            transforms.Normalize((0, 0, 0), tuple(np.sqrt((255, 255, 255)))),
+    data_transforms = transforms.Compose([
+        transforms.ToTensor(),
+        normalize
     ])
 
+    # Should data augmentation be performed on the training data?
+    if data_aug == True:
+        train_transforms = transforms.Compose([
+            transforms.ColorJitter(brightness = 1, contrast = 1, saturation = 1, hue = [-0.2,0.2]),
+            transforms.RandomAffine(degrees = 20, translate = [0.2, 0.2], scale = None, shear = [-5,5]),
+            transforms.RandomGrayscale(p = 0.25),
+            transforms.RandomHorizontalFlip(p = 0.5),
+            transforms.RandomVerticalFlip(p = 0.5),
+            transforms.RandomRotation(degrees = 15),
+            transforms.RandomPerspective(p = 0.3),
+
+
+            transforms.ToTensor(),
+            normalize
+        ])
+    elif data_aug == False:
+        train_transforms = transforms.Compose([
+            transforms.ToTensor(),
+            normalize
+        ])
 
     dataPathString = './data/tiny-imagenet-200'
 
-
-    train_set = torchvision.datasets.ImageFolder(dataPathString + '/train', data_transforms)
+    train_set = torchvision.datasets.ImageFolder(dataPathString + '/train', train_transforms)
     train_loader = torch.utils.data.DataLoader(train_set, batch_size=batch_size,
                                                shuffle=True, num_workers = 1, pin_memory = True)
 
 
     # Create the validation data generator
-    validation_set = torchvision.datasets.ImageFolder(dataPathString + '/val/data', validation_data_transforms)
+    validation_set = torchvision.datasets.ImageFolder(dataPathString + '/val/data', data_transforms)
     validation_loader = torch.utils.data.DataLoader(validation_set, batch_size = batch_size,
                                                shuffle = True, num_workers = 1, pin_memory = True)
 
@@ -201,47 +199,27 @@ def main(learningRate, data_aug = False):
     optimizer = torch.optim.Adam(model.parameters(), lr = learningRate)
     criterion = nn.CrossEntropyLoss()
 
-    exp_lr_scheduler = lr_scheduler.StepLR(optimizer, step_size = 3, gamma = 0.1)
+    exp_lr_scheduler = lr_scheduler.StepLR(optimizer, step_size = 5, gamma = 0.1)
 
     # Make sure the model is on the GPU
     model = model.to(device)
 
     # Number of Epochs
-    num_epochs = 8
+    num_epochs = 3
 
     # Filename
-    filename = 'resnet50-learningRate-' + str(learningRate) + '-noAugment.pt'
+    filename = 'wide_resnet50_2_' + str(learningRate) + '_Augment.pt'
 
     # Train the Model
     fittedModel = train_model(model, criterion, optimizer, exp_lr_scheduler, num_epochs, train_loader, validation_loader, dataset_sizes, filename)
 
 
-    '''
-    for i in range(num_epochs):
-
-        train_total, train_correct = 0,0
-        for idx, (inputs, targets) in enumerate(train_loader):
-            optim.zero_grad()
-            outputs = model(inputs)
-            loss = criterion(outputs, targets)
-            loss.backward()
-            optim.step()
-            _, predicted = outputs.max(1)
-            train_total += targets.size(0)
-            train_correct += predicted.eq(targets).sum().item()
-            print("\r", end='')
-            print(f'training {100 * idx / len(train_loader):.2f}%: {train_correct / train_total:.3f}', end='')
-        torch.save({
-            'net': model.state_dict(),
-        }, 'latest.pt')
-    '''
 
 
 if __name__ == '__main__':
-    main(learningRate = 0.000075, data_aug = False)
-    # main(0.0001)
+    # main(0.00005)
+    main(0.0001, data_aug=True)
     # main(0.0003)
     # main(0.001)
     # main(0.01)
     # main(0.1)
-
