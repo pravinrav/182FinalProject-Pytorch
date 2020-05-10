@@ -145,7 +145,7 @@ def main(learningRate, data_aug=False):
     assert(len(CLASS_NAMES) == 200)
 
     # Create the training data generator
-    batch_size = 1024
+    batch_size = 128
     im_height = 64
     im_width = 64
 
@@ -160,13 +160,13 @@ def main(learningRate, data_aug=False):
     # Should data augmentation be performed on the training data?
     if data_aug == True:
         train_transforms = transforms.Compose([
-            transforms.ColorJitter(brightness = 1, contrast = 1, saturation = 1, hue = [-0.2,0.2]),
-            transforms.RandomAffine(degrees = 20, translate = [0.2, 0.2], scale = None, shear = [-5,5]),
-            transforms.RandomGrayscale(p = 0.25),
-            transforms.RandomHorizontalFlip(p = 0.5),
-            transforms.RandomVerticalFlip(p = 0.5),
-            transforms.RandomRotation(degrees = 15),
-            transforms.RandomPerspective(p = 0.3),
+            # transforms.ColorJitter(brightness = 1, contrast = 1, saturation = 1, hue = [-0.2,0.2]),
+            transforms.RandomAffine(degrees = 3, translate = [0.2, 0.2], scale = None, shear = [-0.5,0.5]),
+            transforms.RandomGrayscale(p = 0.15),
+            transforms.RandomHorizontalFlip(p = 0.35),
+            transforms.RandomVerticalFlip(p = 0.35),
+            transforms.RandomRotation(degrees = 5),
+            transforms.RandomPerspective(p = 0.2),
 
 
             transforms.ToTensor(),
@@ -199,13 +199,13 @@ def main(learningRate, data_aug=False):
     optimizer = torch.optim.Adam(model.parameters(), lr = learningRate)
     criterion = nn.CrossEntropyLoss()
 
-    exp_lr_scheduler = lr_scheduler.StepLR(optimizer, step_size = 5, gamma = 0.1)
+    exp_lr_scheduler = lr_scheduler.StepLR(optimizer, step_size = 10, gamma = 0.1)
 
     # Make sure the model is on the GPU
     model = model.to(device)
 
     # Number of Epochs
-    num_epochs = 3
+    num_epochs = 10
 
     # Filename
     filename = 'wide_resnet50_2_' + str(learningRate) + '_Augment.pt'

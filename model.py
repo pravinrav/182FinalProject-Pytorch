@@ -25,6 +25,7 @@ class Net(nn.Module):
 
         super(Net, self).__init__()
         self.resnet = models.wide_resnet50_2(pretrained = True)
+        # self.resnet = models.resnet50(pretrained = True)
         numFeatures = self.resnet.fc.out_features
 
         self.layer2 = nn.Linear(numFeatures, 512)
