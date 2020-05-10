@@ -13,6 +13,8 @@ import torch.optim as optim
 import numpy as np
 
 from art.attacks import FastGradientMethod
+from art.attacks import BasicIterativeMethod
+
 from art.classifiers import PyTorchClassifier
 from art.utils import load_mnist
 from IPython import embed
@@ -48,7 +50,9 @@ torch.cuda.set_device(0)
 
 # Step 3: Create the ART classifier
 # Load Model and its Weights
-ckpt = torch.load("/home/harshayu7/182FinalProject-Pytorch/resnet50_0.0001_noAugment.pt")
+
+model_path = "../wide_resnet50_2_0.0001_Augment.pt"
+ckpt = torch.load(model_path)
 adv_model = Net(200, 64, 64)
 adv_model.load_state_dict(ckpt['net'])
 adv_model = adv_model.cuda()
@@ -67,10 +71,19 @@ classifier = PyTorchClassifier(
     input_shape=(3, 64, 64),
     nb_classes=200,
 )
-attack = FastGradientMethod(classifier=classifier, eps=0.2)
-print("Initialized Attack.")
+
+attack_fgm = FastGradientMethod(classifier=classifier, eps=0.2, batch_size=128)
+attack_bim = BasicIterativeMethod(classifier=classifier, eps=0.2, max_iter=10, batch_size=128)
+
+#(iter, sec)
+#(100, 29)
+#(10, 4)
+
+print("Initialized Attacks.")
 
 def train_model(model, criterion, optimizer, scheduler, num_epochs, train_loader, validation_loader, dataset_sizes, filename):
+
+    batch_size = 128
 
     # Begin Time
     since = time.time()
@@ -100,32 +113,43 @@ def train_model(model, criterion, optimizer, scheduler, num_epochs, train_loader
             elif phase == 'val':
                 loader = validation_loader
 
-            for idx, (inputs, targets) in enumerate(tqdm(loader)):
+            for idx, (inputs, _) in enumerate(tqdm(loader)): #targets ignored
+
                 inputs = inputs.to(device)
-                targets = targets.to(device)
-                x_test_adv = attack.generate(x=inputs.cpu())
-                inputs = torch.Tensor(x_test_adv).cuda()
+                #targets = targets.to(device)
+
+                x = inputs.cpu()
+                x_fgm = attack_fgm.generate(x=x)
+                x_bim = attack_bim.generate(x=x)
+
+                inputs_fgm = torch.Tensor(x_fgm).cuda()
+                inputs_bim = torch.Tensor(x_bim).cuda()
 
                 # zero the parameter gradients
                 optimizer.zero_grad()
 
                 # forward
                 # track history if only in train
-                with torch.set_grad_enabled(phase == 'train'):
 
-                    outputs = model(inputs)
-                    loss = criterion(outputs, targets)
+                for single_input, ix in [(inputs, 0), (inputs_fgm, 1), (inputs_bim, 2)]:
 
-                    _, preds = torch.max(outputs, 1)
+                    targets = (torch.ones(batch_size) * ix).long().to(device)
 
-                    # backward + optimize only if in training phase
-                    if phase == 'train':
-                        loss.backward()
-                        optimizer.step()
+                    with torch.set_grad_enabled(phase == 'train'):
 
-                # statistics
-                running_loss += loss.item() * inputs.size(0)
-                running_corrects += torch.sum(preds == targets.data)
+                        outputs = model(single_input)
+                        loss = criterion(outputs, targets)
+
+                        _, preds = torch.max(outputs, 1)
+
+                        # backward + optimize only if in training phase
+                        if phase == 'train':
+                            loss.backward()
+                            optimizer.step()
+
+                    # statistics
+                    running_loss += loss.item() * inputs.size(0)
+                    running_corrects += torch.sum(preds == targets.data)
 
             if phase == 'train':
                 scheduler.step()
@@ -169,16 +193,16 @@ def train_model(model, criterion, optimizer, scheduler, num_epochs, train_loader
 
 def main(learningRate, data_aug=False):
 
-    # Create a pytorch dataset
-    data_dir = pathlib.Path('/home/harshayu7/182FinalProject-Pytorch/data/tiny-imagenet-200')
-    # image_count = len(list(data_dir.glob('**/*.JPEG')))
-    CLASS_NAMES = np.array([item.name for item in (data_dir / 'train').glob('*')])
-    # print('Discovered {} images'.format(image_count))
+    # # Create a pytorch dataset
+    # data_dir = pathlib.Path('/home/harshayu7/182FinalProject-Pytorch/data/tiny-imagenet-200')
+    # # image_count = len(list(data_dir.glob('**/*.JPEG')))
+    # CLASS_NAMES = np.array([item.name for item in (data_dir / 'train').glob('*')])
+    # # print('Discovered {} images'.format(image_count))
 
-    assert(len(CLASS_NAMES) == 200)
+    # assert(len(CLASS_NAMES) == 200)
 
     # Create the training data generator
-    batch_size = 512
+    batch_size = 128
     im_height = 64
     im_width = 64
 
@@ -212,7 +236,7 @@ def main(learningRate, data_aug=False):
             normalize
         ])
 
-    dataPathString = '/home/harshayu7/182FinalProject-Pytorch/data/tiny-imagenet-200'
+    dataPathString = '../data/tiny-imagenet-200'
 
     train_set = torchvision.datasets.ImageFolder(dataPathString + '/train', train_transforms)
     train_loader = torch.utils.data.DataLoader(train_set, batch_size=batch_size,
@@ -229,7 +253,8 @@ def main(learningRate, data_aug=False):
     print(dataset_sizes)
 
     # Create a simple model, with optimizer and loss criterion and learning rate scheduler
-    model = Net(len(CLASS_NAMES), im_height, im_width)
+    num_attack_types = 3 #include no-attack as one type
+    model = Net(num_attack_types, im_height, im_width)
     optimizer = torch.optim.Adam(model.parameters(), lr = learningRate)
     criterion = nn.CrossEntropyLoss()
 
@@ -239,10 +264,10 @@ def main(learningRate, data_aug=False):
     model = model.to(device)
 
     # Number of Epochs
-    num_epochs = 7
+    num_epochs = 3
 
     # Filename
-    filename = 'wide_resnet50_2_' + str(learningRate) + 'FGM_Adversarial.pt'
+    filename = 'wide_resnet50_2_' + str(learningRate) + 'distinguish.pt'
 
     # Train the Model
     fittedModel = train_model(model, criterion, optimizer, exp_lr_scheduler, num_epochs, train_loader, validation_loader, dataset_sizes, filename)
@@ -251,6 +276,9 @@ def main(learningRate, data_aug=False):
 
 
 if __name__ == '__main__':
+    #cp model.py and this file into adversarial-robustness-toolbox
+    #then run!
+
     # main(0.00005)
     main(0.0001)
     # main(0.0003)
