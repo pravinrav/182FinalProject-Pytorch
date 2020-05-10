@@ -13,6 +13,8 @@ import torch.optim as optim
 import numpy as np
 
 from art.attacks import FastGradientMethod
+from art.attacks import BasicIterativeMethod
+
 from art.classifiers import PyTorchClassifier
 from art.utils import load_mnist
 from IPython import embed
@@ -48,7 +50,9 @@ torch.cuda.set_device(0)
 
 # Step 3: Create the ART classifier
 # Load Model and its Weights
-ckpt = torch.load("/home/harshayu7/182FinalProject-Pytorch/resnet50_0.0001_noAugment.pt")
+
+model_path = "/home/harshayu7/182FinalProject-Pytorch/resnet50_0.0001_noAugment.pt"
+ckpt = torch.load(model_path)
 adv_model = Net(200, 64, 64)
 adv_model.load_state_dict(ckpt['net'])
 adv_model = adv_model.cuda()
@@ -67,8 +71,10 @@ classifier = PyTorchClassifier(
     input_shape=(3, 64, 64),
     nb_classes=200,
 )
-attack = FastGradientMethod(classifier=classifier, eps=0.2)
-print("Initialized Attack.")
+
+attack_fgm = FastGradientMethod(classifier=classifier, eps=0.2, max_iter=100, batch_size=32)
+attack_bim = BasicIterativeMethod(classifier=classifier, eps=0.2, max_iter=100, batch_size=32)
+print("Initialized Attacks.")
 
 def train_model(model, criterion, optimizer, scheduler, num_epochs, train_loader, validation_loader, dataset_sizes, filename):
 
@@ -101,31 +107,41 @@ def train_model(model, criterion, optimizer, scheduler, num_epochs, train_loader
                 loader = validation_loader
 
             for idx, (inputs, targets) in enumerate(tqdm(loader)):
+                #TODO fix targets to be 0,1,2 instead of class_name
+
                 inputs = inputs.to(device)
                 targets = targets.to(device)
-                x_test_adv = attack.generate(x=inputs.cpu())
-                inputs = torch.Tensor(x_test_adv).cuda()
+
+                x = inputs.cpu()
+                x_fgm = attack_fgm.generate(x=x)
+                x_bim = attack_bim.generate(x=x)
+
+                inputs_fgm = torch.Tensor(x_fgm).cuda()
+                inputs_bim = torch.Tensor(x_bim).cuda()
 
                 # zero the parameter gradients
                 optimizer.zero_grad()
 
                 # forward
                 # track history if only in train
-                with torch.set_grad_enabled(phase == 'train'):
 
-                    outputs = model(inputs)
-                    loss = criterion(outputs, targets)
+                for single_input, ix in [(inputs, 0), (inputs_fgm, 1), (inputs_bim, 2)]:
 
-                    _, preds = torch.max(outputs, 1)
+                    with torch.set_grad_enabled(phase == 'train'):
 
-                    # backward + optimize only if in training phase
-                    if phase == 'train':
-                        loss.backward()
-                        optimizer.step()
+                        outputs = model(single_input)
+                        loss = criterion(outputs, targets)
 
-                # statistics
-                running_loss += loss.item() * inputs.size(0)
-                running_corrects += torch.sum(preds == targets.data)
+                        _, preds = torch.max(outputs, 1)
+
+                        # backward + optimize only if in training phase
+                        if phase == 'train':
+                            loss.backward()
+                            optimizer.step()
+
+                    # statistics
+                    running_loss += loss.item() * inputs.size(0)
+                    running_corrects += torch.sum(preds == targets.data)
 
             if phase == 'train':
                 scheduler.step()
@@ -229,7 +245,8 @@ def main(learningRate, data_aug=False):
     print(dataset_sizes)
 
     # Create a simple model, with optimizer and loss criterion and learning rate scheduler
-    model = Net(len(CLASS_NAMES), im_height, im_width)
+    num_attack_types = 3 #include no-attack as one type
+    model = Net(num_attack_types, im_height, im_width)
     optimizer = torch.optim.Adam(model.parameters(), lr = learningRate)
     criterion = nn.CrossEntropyLoss()
 
