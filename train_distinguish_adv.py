@@ -38,10 +38,11 @@ from torch import nn
 
 
 import pathlib
-from IPython import embed
 import argparse
 from tqdm import tqdm
 from model import Net
+
+from sklearn.metrics import confusion_matrix
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 print(device)
@@ -94,8 +95,8 @@ def train_model(model, criterion, optimizer, scheduler, num_epochs, train_loader
     training_acc = []
     validation_acc = []
 
-    for epoch in range(num_epochs):
-        print('Epoch {}/{}'.format(epoch, num_epochs - 1))
+    for epoch in range(1, num_epochs + 1):
+        print('Epoch {}/{}'.format(epoch, num_epochs))
         print('-' * 10)
 
         # Each epoch has a training and validation phase
@@ -107,13 +108,18 @@ def train_model(model, criterion, optimizer, scheduler, num_epochs, train_loader
 
             running_loss = 0.0
             running_corrects = 0
+            cf_matrix = np.zeros((3,3))
 
             if phase == 'train':
                 loader = train_loader
             elif phase == 'val':
                 loader = validation_loader
 
+            i = 0
             for idx, (inputs, _) in enumerate(tqdm(loader)): #targets ignored
+                i += 1
+                if i % 100 == 0:
+                    print("\n", cf_matrix)
 
                 inputs = inputs.to(device)
                 #targets = targets.to(device)
@@ -133,7 +139,7 @@ def train_model(model, criterion, optimizer, scheduler, num_epochs, train_loader
 
                 for single_input, ix in [(inputs, 0), (inputs_fgm, 1), (inputs_bim, 2)]:
 
-                    targets = (torch.ones(batch_size) * ix).long().to(device)
+                    targets = (torch.ones(single_input.shape[0]) * ix).long().to(device)
 
                     with torch.set_grad_enabled(phase == 'train'):
 
@@ -150,6 +156,7 @@ def train_model(model, criterion, optimizer, scheduler, num_epochs, train_loader
                     # statistics
                     running_loss += loss.item() * inputs.size(0)
                     running_corrects += torch.sum(preds == targets.data)
+                    cf_matrix += np.add(cf_matrix, confusion_matrix(preds.cpu(), targets.cpu(), labels=[0,1,2]))
 
             if phase == 'train':
                 scheduler.step()
@@ -170,6 +177,7 @@ def train_model(model, criterion, optimizer, scheduler, num_epochs, train_loader
                 best_acc = epoch_acc
                 best_model_wts = copy.deepcopy(model.state_dict())
 
+            print("\n confusion: ", cf_matrix)
 
         print()
 
@@ -200,6 +208,9 @@ def main(learningRate, data_aug=False):
     # # print('Discovered {} images'.format(image_count))
 
     # assert(len(CLASS_NAMES) == 200)
+
+    # a, b = torch.ones(3), torch.zeros(3)
+    # print(confusion_matrix(a, b))
 
     # Create the training data generator
     batch_size = 128
