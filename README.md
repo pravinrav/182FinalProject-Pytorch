@@ -24,15 +24,10 @@ cp model.py train_adversarial.py validate_adversarial.py adversarial-robustness-
 ```
 
 ## Training
-### Baseline + Augmented
 ```
 python3 train_sample_torch.py
-python3 validate.py
-```
-### Baseline + Augmented + Adversarial
-```
 cd adversarial-robustness-toolbox/ && python3 train_adversarial.py
-cd adversarial-robustness-toolbox/ && python3 validate_adversarial.py
+python3 validate.py
 ```
 
 ## Test Set Evaluation
