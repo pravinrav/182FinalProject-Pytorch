@@ -1,11 +1,40 @@
-This is some sample code for the CS 182/282 Computer Vision project (Tensorflow 2). It has the following files:
+# README
 
-README.txt - This file
-requirements.txt - The python requirments necessary to run this project
-train_sample.py - A sample training file which trains a simple model on the data, and save the checkpoint to be loaded
-                  in the test_submission.py file.
-test_submission.py - A sample file which will return an output for every input in the eval.csv
-eval.csv - An example test file
-data/get_data.sh - A script which will download the tiny-imagenet data into the data/tiny-imagenet-200 file
+## Contents
+`data/get_data.sh` downloads the tiny-imagenet data into the data/tiny-imagenet-200 file
+`data/convert.py` converts the validation set into a format uniform with the train set
+`eval.csv` is a sample evaluation file
+`final_report.pdf` contains the final report for this project
+`final.pt` contains the final Pytorch model
+`model.py` contains the Wide ResNet-50 architecture that was finetuned via transfer learning
+`requirements.txt` is the python requirements necessary to run this project
+`test_submission.py` takes in a CSV as input and outputs predictions 'eval_classified.csv’
+`train_sample_torch.py` trains Wide ResNet-50 models on the baseline and augmented data set.
+`train_adversarial.py` trains ResNets on adversarially generated images
+`train_distinguish_adv.py` trains ResNets to classify images as natural, FGSM, or BIM-perturbed 
+`validate.py` runs the model on the validation datasets
 
-Note: You should be using Python 3 to run this code.
+## Setup (run all commands from top level directory)
+```
+pip install -r requirements.txt
+cd data && ./get_data.sh
+mv convert.py data/tiny-imagenet-200/val/convert.py && cd data/tiny-imagenet-200/val &&  python3 convert.py
+git clone https://github.com/IBM/adversarial-robustness-toolbox.git
+cp model.py train_adversarial.py validate_adversarial.py adversarial-robustness-toolbox/
+```
+
+## Training
+### Baseline + Augmented
+```
+python3 train_sample_torch.py
+python3 validate.py
+```
+### Baseline + Augmented + Adversarial
+```
+cd adversarial-robustness-toolbox/ && python3 train_adversarial.py
+cd adversarial-robustness-toolbox/ && python3 validate_adversarial.py
+```
+
+## Test Set Evaluation
+python3 test_submission_torch.py path/to/csv
+
